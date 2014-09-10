@@ -10,7 +10,7 @@
 	 * MAIN
 	 **/
 	var init = function () {
-		
+
 		//template single article in the news list
 		$M.Templates.NewsItem = "\
 					<li data-id='<%= id %>' data-counter='<%= number-1 %>'>\
@@ -20,7 +20,7 @@
 							<span class='author'><%= postedBy %></span>&nbsp; \
 							<span class='time-ago'><%= postedAgo %></span>&nbsp; \
 							<span class='url'><%= $M.ParseUrl(url).parent_domain %></span>\
-						</a><a href='#' class='comments'><span class='icon icon-bubble'></span><%= commentCount %></a>\
+						</a><a href='<%= url %>' class='comments'><span class='icon icon-bubble'></span><%= commentCount %></a>\
 					</li>\
 				";
 		//template news list container
@@ -122,17 +122,17 @@
 			var html = new EJS({'text': $M.Templates.NewsBloc}).render(data);
 			$('.list').html(html);
 			$('ul.list').height($(window).height() - 102);
-			
+
 			//initialize the right side
 			$('.right-side').removeClass('filled');
 			$('.page-about').html('<span class="no-story">No Story Selected</span>');
 		});
-	} 
+	}
 	var init = function () {
-		
+
 		//first call to news list
 		Initcall();
-		
+
 		$('body').on('click','.left-side .btn-refresh',function(e){
 			//implement event for refresh
 			Initcall();
@@ -146,13 +146,44 @@
 			$('.right-side').delay(500).show();
 			$('.left-side').delay(500).show();
 		});
-		$('body').on('click','li a.story , li a.comments',function(e){
+
+		$('body').on('click','li a.story',function(e){
 			e.preventDefault();
 			var id=$(this).parent().data('id');
-			
+
 			$('.itemBox li').removeClass('active');
 			$(this).parent().addClass('active');
-			
+
+			if($(this).parents('.itemBox').hasClass('active') || $(this).hasClass('disabled')){
+				$('.itemBox').removeClass('active');
+				$('.itemBox .loadingCmnt').remove();
+			}
+			else{
+				$('.itemBox').removeClass('active');
+				$('.itemBox .loadingCmnt').remove();
+				$(this).parents('.itemBox').addClass('active');
+				$( "<div class='loadingCmnt'></div>" ).insertAfter( $(this).parent() );
+			}
+
+			var heightIframe=$(window).height() - 52;
+			var html = '<iframe width="100%" height="'+heightIframe+'px" src="'+$(this).attr("href")+'"/>';
+			$('.right-side .page').html(html);
+			$('.right-side').addClass('filled');
+			if($( window ).width()<760){
+				$('.menu-left-side').delay(500).show();
+				$('.right-side').delay(500).show();
+				$('.left-side').delay(500).hide();
+				$('.menu-left-side').width(15);
+				$('.right-side').width($(window).width() - 17);
+			}
+		})
+		$('body').on('click','li a.comments',function(e){
+			e.preventDefault();
+			var id=$(this).parent().data('id');
+
+			$('.itemBox li').removeClass('active');
+			$(this).parent().addClass('active');
+
 			if($(this).parents('.itemBox').hasClass('active') || $(this).hasClass('disabled')){
 				$('.itemBox').removeClass('active');
 				$('.itemBox .loadingCmnt').remove();
@@ -165,24 +196,29 @@
 			}
 
 
-			//the api sometime dont respond so i implement as a second solution the iframe content 
+			//the api sometime dont respond so i implement as a second solution the iframe content
 			$.jsonp({
 			 	type: 'GET',
 				url: 'http://api.ihackernews.com/post/'+id+'?format=jsonp&callback=?',
 				params:{scope:this}
 			}).fail(function (XMLHttpRequest, textStatus, errorThrown) {
 				//in case api doesn't respond we include the page into iframe
+				$('.right-side').removeClass('filled');
+				$('.page-about').html('<span class="no-story">Error contacting server <br> redirecting to page</span>');
 				var heightIframe=$(window).height() - 52;
 				var html = '<iframe width="100%" height="'+heightIframe+'px" src="'+$(XMLHttpRequest.params.scope).attr("href")+'"/>';
-				$('.right-side .page').html(html);
-				$('.right-side').addClass('filled');
-				if($( window ).width()<760){
-					$('.menu-left-side').delay(500).show();
-					$('.right-side').delay(500).show();
-					$('.left-side').delay(500).hide();
-					$('.menu-left-side').width(15);
-					$('.right-side').width($(window).width() - 17);
-				}
+				setTimeout(function(){
+					$('.right-side .page').html(html);
+					$('.right-side').addClass('filled');
+					if($( window ).width()<760){
+						$('.menu-left-side').delay(500).show();
+						$('.right-side').delay(500).show();
+						$('.left-side').delay(500).hide();
+						$('.menu-left-side').width(15);
+						$('.right-side').width($(window).width() - 17);
+					}
+				}, 2000);
+
 			}).done(function ( data ) {
 				pageData=data;
 				var html = new EJS({'text': $M.Templates.NewsCommentBloc}).render(pageData);
@@ -203,7 +239,7 @@ $(document).ready(function () {
 	var OldWidth=0;
 	$M.Templates();
 	$M.newsInit();
-	
+
 	//resize event to detect height/width variation
 	$(window).resize(function() {
 		if(Math.abs($(window).height()-OldHeight)>10){
@@ -221,11 +257,11 @@ $(document).ready(function () {
 			$('.menu-left-side').width(15);
 			$('.right-side').width($(window).width() - 17);
 		}
-		
-		
+
+
 	});
-	
-			  
+
+
 	//trigger first time
 	$(window).trigger( "resize" );
 });
