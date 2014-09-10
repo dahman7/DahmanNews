@@ -1,6 +1,8 @@
 # DahmanNews #
 
+other version of the hacker news website : 'news.ycombinator.com'
 
-### App ###
+### Structure ###
 
-folder for work
+app: work folder
+dist: production folder
